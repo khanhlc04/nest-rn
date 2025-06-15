@@ -6,6 +6,7 @@ import { Model } from 'mongoose';
 import { User } from './schemas/user.schema';
 import { hashPasswordHelper } from '@/helpers/util';
 import aqp from 'api-query-params';
+import mongoose from 'mongoose';
 
 @Injectable()
 export class UsersService {
@@ -54,12 +55,12 @@ export class UsersService {
 
     async findAll(query: string, current: number, pageSize: number) {
         const { filter, sort } = aqp(query);
-        if(filter.current) delete filter.current;
-        if(filter.pageSize) delete filter.pageSize;
+        if (filter.current) delete filter.current;
+        if (filter.pageSize) delete filter.pageSize;
 
-        if(!current) current = 1;
-        if(!pageSize) pageSize = 10;
-        
+        if (!current) current = 1;
+        if (!pageSize) pageSize = 10;
+
         const totalItems = (await this.userModel.find(filter)).length;
         const totalPages = Math.ceil(totalItems / pageSize);
 
@@ -72,18 +73,29 @@ export class UsersService {
             .select("-password")
             .sort(sort as any)
 
-        return {results, totalPages };
+        return { results, totalPages };
     }
 
     findOne(id: number) {
         return `This action returns a #${id} user`;
     }
 
-    update(id: number, updateUserDto: UpdateUserDto) {
-        return `This action updates a #${id} user`;
+    async findByEmail(email: string) {
+        return await this.userModel.findOne({ email });
     }
 
-    remove(id: number) {
-        return `This action removes a #${id} user`;
+    async update(updateUserDto: UpdateUserDto) {
+        return await this.userModel.updateOne(
+            { _id: updateUserDto._id },
+            { ...updateUserDto }
+        )
+    }
+
+    async remove(_id: string) {
+        if (mongoose.isValidObjectId(_id)) {
+            return await this.userModel.deleteOne({ _id })
+        } else {
+            throw new BadRequestException("Invalid id")
+        }
     }
 }
